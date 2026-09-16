@@ -16,11 +16,12 @@ module.exports = {
   mongoUri: process.env.MONGO_URI,
   jwtSecret: process.env.JWT_SECRET || 'test-secret',
   jwtExpiresIn: process.env.JWT_EXPIRES_IN || '7d',
-  // Comma-separated list of allowed origins for CORS (used as-is in
-  // production; in dev, app.js also allows any localhost/127.0.0.1 port).
-  clientOrigins: (process.env.CLIENT_ORIGIN || 'http://localhost:5173')
+  // Comma-separated list of allowed CORS origins in addition to localhost
+  // (app.js always allows localhost/127.0.0.1). Set this to the deployed
+  // frontend URL in production, e.g. https://ajaia-delta.vercel.app
+  clientOrigins: (process.env.CLIENT_ORIGIN || '')
     .split(',')
-    .map((o) => o.trim())
+    .map((o) => o.trim().replace(/\/$/, ''))
     .filter(Boolean),
   maxUploadSizeBytes: Number(process.env.MAX_UPLOAD_SIZE_BYTES) || 5 * 1024 * 1024,
 };

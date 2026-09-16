@@ -8,27 +8,26 @@ const { notFoundHandler, errorHandler } = require('./src/middlewares/error.middl
 
 const app = express();
 
-// In dev, Vite drifts to the next free port (5173, 5174, ...) whenever the
-// configured one is taken, so pin CORS to localhost/127.0.0.1 on any port
-// rather than one hardcoded value. In production, only the exact configured
-// origin(s) are allowed.
-const localhostDevOrigin = /^https?:\/\/(localhost|127\.0\.0\.1):\d+$/;
+// Any localhost/127.0.0.1 port is always allowed — this covers local dev
+// (Vite drifts to the next free port: 5173, 5174, ...) and lets a local
+// frontend talk to the deployed backend. Everything else must be explicitly
+// listed in CLIENT_ORIGIN (comma-separated), e.g. the deployed Vercel URL.
+const localhostOrigin = /^https?:\/\/(localhost|127\.0\.0\.1):\d+$/;
 
-app.use(
-  cors({
-    origin(origin, callback) {
-      if (!origin) return callback(null, true); // same-origin / curl / server-to-server
-      if (env.nodeEnv !== 'production' && localhostDevOrigin.test(origin)) {
-        return callback(null, true);
-      }
-      if (env.clientOrigins.includes(origin)) {
-        return callback(null, true);
-      }
-      return callback(new Error(`Origin ${origin} is not allowed by CORS`));
-    },
-    credentials: true,
-  })
-);
+const corsOptions = {
+  origin(origin, callback) {
+    if (!origin) return callback(null, true); // same-origin / curl / server-to-server
+    const normalized = origin.replace(/\/$/, '');
+    if (localhostOrigin.test(normalized) || env.clientOrigins.includes(normalized)) {
+      return callback(null, true);
+    }
+    return callback(new Error(`Origin ${origin} is not allowed by CORS`));
+  },
+  credentials: true,
+};
+
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions)); // explicit preflight handling for every route
 app.use(express.json({ limit: '2mb' }));
 app.use(express.urlencoded({ extended: true }));
 
